@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { User } from '../entities/User.entity';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { UpdateUserDto } from '../dtos/update-user.dto';
@@ -111,6 +111,23 @@ export class UsersService {
     const user = await this.userRepository.findOneBy({ id: id });
     await this.userRepository.remove(user);
     return 1;
+  }
+
+  async getAllDeletedUser(): Promise<User[]> {
+    return this.userRepository.find({
+      withDeleted: true,
+      where: { delete_at: Not(IsNull()) },
+    });
+  }
+
+  async softDeleteUser(id: number): Promise<string> {
+    await this.userRepository.softDelete(id);
+    return 'success soft delete';
+  }
+
+  async restoreUser(id: number): Promise<string> {
+    await this.userRepository.restore(id);
+    return 'restore success';
   }
 
   private async hashPassword(password: string) {
