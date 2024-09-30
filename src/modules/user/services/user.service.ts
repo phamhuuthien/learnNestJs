@@ -7,7 +7,7 @@ import { UpdateUserDto } from '../dtos/update-user.dto';
 import { RolesService } from 'src/modules/role/services/role.service';
 import { validateHeaderName } from 'http';
 import { paginate, PaginateQuery } from 'nestjs-paginate';
-
+import * as bcrypt from 'bcrypt';
 @Injectable()
 export class UsersService {
   constructor(
@@ -18,73 +18,104 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const user = new User();
-    if(createUserDto.roleId){
+    if (createUserDto.roleId) {
       const role = await this.roleService.getById(createUserDto.roleId);
-      if(!role){
-        throw new BadRequestException('role chua ton tai')
+      if (!role) {
+        throw new BadRequestException('role chua ton tai');
       }
       user.role = role;
     }
-    if(createUserDto.email){
-      const emailExist = await this.userRepository.findOneBy({email: createUserDto.email})
-      if(emailExist) {
-        throw new BadRequestException('email da ton tai')
+    if (createUserDto.email) {
+      const emailExist = await this.userRepository.findOneBy({
+        email: createUserDto.email,
+      });
+      if (emailExist) {
+        throw new BadRequestException('email da ton tai');
       }
     }
-    Object.assign(user,createUserDto) 
+    createUserDto.password = await this.hashPassword(createUserDto.password);
+    Object.assign(user, createUserDto);
     return this.userRepository.save(user);
   }
 
+  // async getAll(): Promise<User[]> {
+  //   return this.userRepository.find(
+  //     {
+  //       select: ['id', 'email'],
+  //       relations: [],
+  //     }
+  //   );
+  // }
+
   async getAll(): Promise<User[]> {
-    return this.userRepository.find(
-      {
-        select: ['id', 'email'], 
-        relations: [],
-      }
-    );
+    return this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .getMany();
   }
 
-  async getPaginate(query: PaginateQuery){
-    return paginate(query,this.userRepository, {
+  async getPaginate(query: PaginateQuery) {
+    return paginate(query, this.userRepository, {
       relations: ['role'],
-      sortableColumns: ['id', 'email','role.name'],
+      sortableColumns: ['id', 'email', 'role.name'],
       defaultSortBy: [['id', 'DESC']],
       searchableColumns: ['email'],
     });
   }
 
-  async getById(id:number):Promise<User> {
-    return this.userRepository.findOneBy({id:id});
+  // async getById(id:number):Promise<User> {
+  //   return this.userRepository.findOneBy({id:id});
+  // }
+
+  async getById(id: number): Promise<User> {
+    return await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.id = :id', { id })
+      .getOne();
+  }
+  async getUserWithRoleId(id: number): Promise<User> {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('user.role = :id', { id })
+      .getOne();
   }
 
-  async update(id:number,updateUserDto : UpdateUserDto):Promise<User>{
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.userRepository.findOneBy({ id });
     if (!user) {
       throw new BadRequestException('user không tồn tại');
     }
 
-    if(updateUserDto.roleId){
+    if (updateUserDto.roleId) {
       const role = await this.roleService.getById(updateUserDto.roleId);
-      if(!role){
-        throw new BadRequestException('role chua ton tai')
+      if (!role) {
+        throw new BadRequestException('role chua ton tai');
       }
       user.role = role;
     }
 
-    if(updateUserDto.email){
-      const emailExist = await this.userRepository.findOneBy({email: updateUserDto.email})
-      if(emailExist) {
-        throw new BadRequestException('email da ton tai')
+    if (updateUserDto.email) {
+      const emailExist = await this.userRepository.findOneBy({
+        email: updateUserDto.email,
+      });
+      if (emailExist) {
+        throw new BadRequestException('email da ton tai');
       }
     }
 
-    Object.assign(user,updateUserDto)
-    return await this.userRepository.save(user)
+    Object.assign(user, updateUserDto);
+    return await this.userRepository.save(user);
   }
-  async delete(id:number):Promise<number> {
-    const user =  await this.userRepository.findOneBy({id:id});
+  async delete(id: number): Promise<number> {
+    const user = await this.userRepository.findOneBy({ id: id });
     await this.userRepository.remove(user);
     return 1;
   }
 
+  private async hashPassword(password: string) {
+    const saltOrRounds = +process.env.SALT;
+    const salt = await bcrypt.genSalt(saltOrRounds);
+    return await bcrypt.hash(password, salt);
+  }
 }

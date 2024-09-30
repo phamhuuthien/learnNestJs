@@ -14,7 +14,7 @@ export class UsersController {
     return this.usersService.getById(id)
   }
 
-  @Get()
+  @Get("/paginate")
   async getPaginate(@Query() query:PaginateQuery){
     return this.usersService.getPaginate(query)
   }
@@ -26,7 +26,7 @@ export class UsersController {
 
   @Post()
   @HttpCode(201)
-  async create(@Body() createUserDto: CreateUserDto):Promise<User> {
+  async create(@Body() createUserDto: CreateUserDto):Promise<User> { 
     return this.usersService.create(createUserDto)
   }
 

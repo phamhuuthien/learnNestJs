@@ -10,6 +10,7 @@ import { RolesModule } from './modules/role/role.module';
 import { PermissionsModule } from './modules/permission/permission.module';
 import { Permission } from './modules/permission/entities/Permission.entity';
 import { ValidationPipe } from './pipes/validation.pipe';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   providers: [
@@ -36,7 +37,8 @@ import { ValidationPipe } from './pipes/validation.pipe';
     }),
     PermissionsModule,
     UsersModule,
-    RolesModule
+    RolesModule,
+    AuthModule
   ],
 })
 export class AppModule  {

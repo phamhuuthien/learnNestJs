@@ -1,6 +1,6 @@
-import { IsEmail, IsNotEmpty, Length } from "class-validator";
+import { IsEmail, IsEmpty, IsNotEmpty, Length } from 'class-validator';
 
-export class CreateUserDto {
+export class RegisterDto {
   @Length(2, 10, { message: 'first name không lớn hơn 2 và nhỏ hơn 10' })
   firstName: string;
 
@@ -11,7 +11,7 @@ export class CreateUserDto {
   email: string;
 
   @IsNotEmpty({ message: 'password không được để trống' })
-  @Length(5, 10, { message: 'address phải lớn hơn 5 và nhỏ hơn 10' })
+  @Length(0, 10, { message: 'address phải lớn hơn 5 và nhỏ hơn 10' })
   password: string;
 
   @Length(5, 255, { message: 'address phải lớn hơn 5 và nhỏ hơn 255' })
