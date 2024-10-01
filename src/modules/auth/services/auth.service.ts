@@ -86,7 +86,7 @@ export class AuthService {
       }
       const decode = this.jwtService.decode(refreshToken);
       const user = await this.userRepository.findOne({
-        where: { id: decode.id },
+        where: { email: decode.email },
       });
       if (!user) throw new UnauthorizedException('Xác thực thất bại');
       return this.generateAccessToken({ id: user.id, email: user.email });
