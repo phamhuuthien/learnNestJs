@@ -27,7 +27,7 @@ import { Role } from 'src/modules/role/role.enum';
 
 @ApiBearerAuth()
 @ApiTags('User')
-@Controller('users')
+@Controller()
 export class UsersController {
   constructor(private usersService: UsersService) {}
 

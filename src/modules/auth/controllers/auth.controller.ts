@@ -19,7 +19,7 @@ import { Role } from 'src/modules/role/role.enum';
 import { ApiResponse, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Auth')
-@Controller('auth')
+@Controller()
 export class AuthController {
   constructor(private authService: AuthService) {}
 

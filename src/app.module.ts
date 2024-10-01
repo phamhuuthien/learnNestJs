@@ -1,6 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { LoggerMiddleware } from './middlewares/logger.middleware';
-import { APP_FILTER, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_PIPE, RouterModule, Routes } from '@nestjs/core';
 import { HttpExceptionFilter } from './common/fillters/http-exception.filter';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './modules/user/user.module';
@@ -12,6 +12,17 @@ import { Permission } from './modules/permission/entities/Permission.entity';
 import { ValidationPipe } from './pipes/validation.pipe';
 import { AuthModule } from './modules/auth/auth.module';
 
+const routes: Routes = [
+  {
+    path: '/v1',
+    children: [
+      { path: '/auth', module: AuthModule },
+      { path: '/users', module: UsersModule },
+      { path: '/permissions', module: PermissionsModule },
+      { path: '/roles', module: RolesModule },
+    ],
+  },
+];
 @Module({
   providers: [
     // {
@@ -24,6 +35,7 @@ import { AuthModule } from './modules/auth/auth.module';
     },
   ],
   imports: [
+    RouterModule.register(routes),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -31,15 +43,14 @@ import { AuthModule } from './modules/auth/auth.module';
       username: 'root',
       password: '123456',
       database: 'test_db',
-      entities: [User,Role,Permission],
-      synchronize: true, 
+      entities: [User, Role, Permission],
+      synchronize: true,
       autoLoadEntities: true,
     }),
     PermissionsModule,
     UsersModule,
     RolesModule,
-    AuthModule
+    AuthModule,
   ],
 })
-export class AppModule  {
-}
+export class AppModule {}

@@ -22,7 +22,7 @@ import { UpdatePermissionDto } from '../dtos/update-permission.dto';
 import { ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Permission')
-@Controller('permissions')
+@Controller()
 export class PermissionsController {
   constructor(private permissionService: PermissionsService) {}
 
