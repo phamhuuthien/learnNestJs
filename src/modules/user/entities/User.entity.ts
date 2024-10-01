@@ -32,9 +32,6 @@ export class User {
   @Column('varchar', { length: 200 })
   address: string;
 
-  @Column('varchar', { length: 255, default: '' })
-  refreshToken: string;
-
   @Column('int', { name: 'role_id' })
   roleId: number;
 

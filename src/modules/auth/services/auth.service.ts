@@ -11,7 +11,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LoginDto } from '../dtos/login.dto';
 import { RolesService } from 'src/modules/role/services/role.service';
-import { type } from 'os';
+import { Response, Request } from 'express';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -42,7 +43,7 @@ export class AuthService {
     return this.userRepository.save({ ...registerDto, password: hashPassword });
   }
 
-  async signIn(loginDto: LoginDto): Promise<any> {
+  async signIn(loginDto: any, response: Response): Promise<any> {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
     });
@@ -56,67 +57,39 @@ export class AuthService {
       throw new BadRequestException('password không chính xác');
     }
 
-    // check refreshToken còn hạn không (thêm thời gian cho refreshToken trong user )
-    // nếu hết hạn refreshToken thì gọi đến api resfreshToken
-
     let accessToken: string;
     let refreshToken: string;
 
-    //  check nếu tồn tại refreshToken
-    if (user.refreshToken == '') {
-      // trả về refreshToken và accessToken cho client
-      refreshToken = await this.generateAndUpdateRefreshToken({
-        email: user.email,
-      });
-      accessToken = await this.generateAccessToken({
-        id: user.id,
-        email: user.email,
-      });
-    } else {
+    refreshToken = await this.generateRefreshToken({
+      email: user.email,
+    });
+    accessToken = await this.generateAccessToken({
+      id: user.id,
+      email: user.email,
+    });
+
+    response.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+    });
+    return { accessToken };
+  }
+
+  async refreshToken(request: Request): Promise<any> {
+    try {
+      const refreshToken = request.cookies?.refreshToken || '';
       try {
-        //  check refresh token hợp lệ
-        await this.jwtService.verifyAsync(user.refreshToken, {
+        await this.jwtService.verifyAsync(refreshToken, {
           secret: process.env.JWT_SECRET,
         });
       } catch (error) {
-        await this.userRepository.update(
-          { email: user.email },
-          { refreshToken: '' },
-        );
-        throw new UnauthorizedException('Token không hợp lệ');
+        throw new UnauthorizedException('Xác thực thất bại');
       }
-
-      // trả về refreshToken và accessToken cho client
-      refreshToken = user.refreshToken;
-      accessToken = await this.generateAccessToken({
-        id: user.id,
-        email: user.email,
+      const decode = this.jwtService.decode(refreshToken);
+      const user = await this.userRepository.findOne({
+        where: { id: decode.id },
       });
-    }
-
-    return { accessToken, refreshToken };
-  }
-
-  async refreshToken(refreshToken: string): Promise<any> {
-    try {
-      const decode = await this.jwtService.verifyAsync(refreshToken, {
-        secret: process.env.JWT_SECRET,
-      });
-      // check email and refreshToken hợp lệ
-      const checkExistEmailAndRefreshToken =
-        await this.userRepository.findOneBy({
-          email: decode.email,
-          refreshToken: refreshToken,
-        });
-      if (checkExistEmailAndRefreshToken) {
-        const newAccessToken = await this.generateAccessToken({
-          id: checkExistEmailAndRefreshToken.id,
-          email: checkExistEmailAndRefreshToken.email,
-        });
-        return { newAccessToken };
-      } else {
-        throw new UnauthorizedException('vui lòng login');
-      }
+      if (!user) throw new UnauthorizedException('Xác thực thất bại');
+      return this.generateAccessToken({ id: user.id, email: user.email });
     } catch (error) {
       throw new UnauthorizedException('token không hợp lệ');
     }
@@ -128,17 +101,13 @@ export class AuthService {
     return await bcrypt.hash(password, salt);
   }
 
-  private async generateAndUpdateRefreshToken(payload: {
+  private async generateRefreshToken(payload: {
     email: string;
   }): Promise<string> {
     const refreshToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET,
       expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
     });
-    await this.userRepository.update(
-      { email: payload.email },
-      { refreshToken: refreshToken },
-    );
     return refreshToken;
   }
 
