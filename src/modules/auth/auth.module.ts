@@ -12,15 +12,18 @@ import { UsersModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { User } from '../user/entities/User.entity';
 import { RolesModule } from '../role/role.module';
+import { AuthGuard } from './auth.guard';
+import { RolesGuard } from './role.guard';
+import { Auth } from './auth.decorator';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     JwtModule.register({}),
     RolesModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
-  exports: [AuthService],
+  providers: [AuthService, AuthGuard, RolesGuard],
+  exports: [AuthService, AuthGuard, RolesGuard],
 })
 export class AuthModule {}
