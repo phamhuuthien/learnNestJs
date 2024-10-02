@@ -2,7 +2,7 @@
 /dist
 /node_modules
 /build
-
+/SaveLog
 # Logs
 logs
 *.log

@@ -5,7 +5,6 @@ import { User } from '../entities/User.entity';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { UpdateUserDto } from '../dtos/update-user.dto';
 import { RolesService } from 'src/modules/role/services/role.service';
-import { validateHeaderName } from 'http';
 import { paginate, PaginateQuery } from 'nestjs-paginate';
 import * as bcrypt from 'bcrypt';
 @Injectable()
@@ -20,16 +19,11 @@ export class UsersService {
     const user = new User();
     if (createUserDto.roleId) {
       const role = await this.roleService.getById(createUserDto.roleId);
-      if (!role) {
-        throw new BadRequestException('role chua ton tai');
-      }
       user.role = role;
     }
     if (createUserDto.email) {
-      const emailExist = await this.userRepository.findOneBy({
-        email: createUserDto.email,
-      });
-      if (emailExist) {
+      const checkUser = await this.emailExist(createUserDto.email);
+      if (checkUser) {
         throw new BadRequestException('email da ton tai');
       }
     }
@@ -68,11 +62,26 @@ export class UsersService {
   // }
 
   async getById(id: number): Promise<User> {
-    return await this.userRepository
+    const user = await this.userRepository
       .createQueryBuilder('user')
       .where('user.id = :id', { id })
       .getOne();
+    if (!user) {
+      throw new BadRequestException('user không tồn tại');
+    }
+    return user;
   }
+
+  async emailExist(email: string): Promise<boolean> {
+    const user = await this.userRepository.findOneBy({
+      email: email,
+    });
+    if (!user) {
+      return false;
+    }
+    return true;
+  }
+
   async getUserWithRoleId(id: number): Promise<User> {
     return this.userRepository
       .createQueryBuilder('user')
@@ -81,12 +90,9 @@ export class UsersService {
       .getOne();
   }
 
+  //  update pass chưa mã hóa
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.userRepository.findOneBy({ id });
-    if (!user) {
-      throw new BadRequestException('user không tồn tại');
-    }
-
+    const user = await this.getById(id);
     if (updateUserDto.roleId) {
       const role = await this.roleService.getById(updateUserDto.roleId);
       if (!role) {
@@ -96,10 +102,8 @@ export class UsersService {
     }
 
     if (updateUserDto.email) {
-      const emailExist = await this.userRepository.findOneBy({
-        email: updateUserDto.email,
-      });
-      if (emailExist) {
+      const checkUser = await this.emailExist(updateUserDto.email);
+      if (checkUser) {
         throw new BadRequestException('email da ton tai');
       }
     }
@@ -108,7 +112,7 @@ export class UsersService {
     return await this.userRepository.save(user);
   }
   async delete(id: number): Promise<number> {
-    const user = await this.userRepository.findOneBy({ id: id });
+    const user = await this.getById(id);
     await this.userRepository.remove(user);
     return 1;
   }

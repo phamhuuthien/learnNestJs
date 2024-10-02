@@ -21,57 +21,53 @@ import { User } from '../entities/User.entity';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { UpdateUserDto } from '../dtos/update-user.dto';
 import { PaginateQuery } from 'nestjs-paginate';
-import { ApiBearerAuth, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Auth } from 'src/modules/auth/auth.decorator';
-import { Role } from 'src/modules/role/role.enum';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Role } from 'src/modules/role/enum/role.enum';
+import { Auth } from 'src/decorators/auth.decorator';
 
-@ApiBearerAuth()
 @ApiTags('User')
 @Controller()
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get('get-all-deleted-user')
-  @Auth([Role.Admin], { isPublic: false })
-  @ApiResponse({ status: 200, description: 'get list soft delete thành công' })
-  @ApiResponse({ status: 404, description: 'thất bại' })
+  @Auth('Lấy danh sách deleted users', [Role.Admin], { isPublic: false })
   async getAllDeletedUser(): Promise<User[]> {
     return this.usersService.getAllDeletedUser();
   }
 
   @Get('/paginate')
-  @Auth([Role.Admin], { isPublic: false })
+  @Auth('lấy danh sách user', [Role.Admin], { isPublic: false })
   async getPaginate(@Query() query: PaginateQuery) {
     return this.usersService.getPaginate(query);
   }
 
   @Get(':id')
-  @Auth([Role.User, Role.Admin], { isPublic: false })
-  @ApiResponse({ status: 200, description: 'get user thành công' })
-  @ApiResponse({ status: 404, description: 'thất bại' })
+  @Auth('lấy user detail', [Role.User, Role.Admin], { isPublic: false })
   getOne(@Param('id', ParseIntPipe) id: number): Promise<User> {
     return this.usersService.getById(id);
   }
 
   @Get()
-  @Auth([Role.Admin], { isPublic: false })
+  @Auth('lấy danh sách user', [Role.Admin], { isPublic: false })
   async findAll(): Promise<User[]> {
     return this.usersService.getAll();
   }
 
   @Post()
-  @Auth([Role.User], { isPublic: true })
-  @ApiResponse({ status: 201, description: 'create thành công' })
-  @ApiResponse({ status: 404, description: 'thất bại' })
+  @Auth('tạo user ', [Role.User], { isPublic: true })
   async create(@Body() createUserDto: CreateUserDto): Promise<User> {
     return this.usersService.create(createUserDto);
   }
 
   @Put(':id')
   @HttpCode(203)
-  @Auth([Role.User], { isPublic: false })
-  @ApiResponse({ status: 203, description: 'update thành công' })
-  @ApiResponse({ status: 404, description: 'thất bại' })
+  @Auth('cập nhập user', [Role.User], { isPublic: false })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -80,25 +76,19 @@ export class UsersController {
   }
 
   @Patch('restore-user/:id')
-  @Auth([Role.Admin], { isPublic: false })
-  @ApiResponse({ status: 200, description: 'restore user thành công' })
-  @ApiResponse({ status: 404, description: 'thất bại' })
+  @Auth('restore user deleted', [Role.Admin], { isPublic: false })
   async restoreUser(@Param('id') id: number): Promise<string> {
     return this.usersService.restoreUser(id);
   }
 
   @Delete('soft-delete-user/:id')
-  @Auth([Role.Admin], { isPublic: false })
-  @ApiResponse({ status: 200, description: 'thành công' })
-  @ApiResponse({ status: 404, description: 'thất bại' })
+  @Auth('xóa mềm', [Role.Admin], { isPublic: false })
   softDeleteUser(@Param('id', ParseIntPipe) id: number): Promise<string> {
     return this.usersService.softDeleteUser(id);
   }
 
   @Delete(':id')
-  @Auth([Role.Admin], { isPublic: false })
-  @ApiResponse({ status: 200, description: 'thành công' })
-  @ApiResponse({ status: 404, description: 'thất bại' })
+  @Auth('xóa user ', [Role.Admin], { isPublic: false })
   delete(@Param('id', ParseIntPipe) id: number): Promise<number> {
     return this.usersService.delete(id);
   }

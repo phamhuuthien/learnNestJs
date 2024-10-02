@@ -5,9 +5,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RolesService } from '../role/services/role.service';
-import { Role } from '../role/role.enum';
-import { UsersService } from '../user/services/user.service';
+import { Role } from 'src/modules/role/entities/Role.entity';
+import { RolesService } from 'src/modules/role/services/role.service';
+import { UsersService } from 'src/modules/user/services/user.service';
+// import { RolesService } from '../role/services/role.service';
+// import { Role } from '../role/enum/role.enum';
+// import { UsersService } from '../user/services/user.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
