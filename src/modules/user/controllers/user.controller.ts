@@ -21,7 +21,7 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { Response } from 'express';
+import { query, Response } from 'express';
 import { UsersService } from '../services/user.service';
 import { User } from '../entities/User.entity';
 import { CreateUserDto } from '../dtos/create-user.dto';
@@ -38,6 +38,7 @@ import { Auth } from 'src/decorators/auth.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { storageConfig } from 'src/helpers/configSaveFile';
+import { PaginationInterface } from '../interfaces/pagination.interface';
 
 @ApiTags('User')
 @Controller()
@@ -54,6 +55,10 @@ export class UsersController {
   @Auth('lấy danh sách user', [Role.Admin], { isPublic: false })
   async getPaginate(@Query() query: PaginateQuery) {
     return this.usersService.getPaginate(query);
+  }
+  @Get('danh-sach-user')
+  getAllUsers(@Query() query: PaginationInterface) {
+    return this.usersService.getAllUser(query);
   }
 
   @Get(':id')
@@ -127,10 +132,9 @@ export class UsersController {
   )
   uploadAvatar(
     @Req() req: any,
-    @UploadedFile()
-    file // new ParseFilePipe({
-    //   validators: [
+    @UploadedFile() // new ParseFilePipe({
     //     new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }),
+    file //   validators: [
     //     new FileTypeValidator({ fileType: '/image/(jpg|jpeg|png)$/' }),
     //   ],
     // }),

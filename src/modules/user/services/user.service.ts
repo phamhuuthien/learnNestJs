@@ -1,12 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { IsNull, Like, Not, Repository } from 'typeorm';
 import { User } from '../entities/User.entity';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { UpdateUserDto } from '../dtos/update-user.dto';
 import { RolesService } from 'src/modules/role/services/role.service';
 import { paginate, PaginateQuery } from 'nestjs-paginate';
 import * as bcrypt from 'bcrypt';
+import { PaginationInterface } from '../interfaces/pagination.interface';
 @Injectable()
 export class UsersService {
   constructor(
@@ -43,6 +44,50 @@ export class UsersService {
 
   async updateAvatar(id: number, fileName: string) {
     return await this.userRepository.update({ id: id }, { avatar: fileName });
+  }
+
+  async getAllUser(query: PaginationInterface) {
+    const pageSize = Number(query.pageSize) || Number(process.env.PAGE_SIZE);
+    const page = Number(query.page) || 1;
+    const skip = (page - 1) * pageSize;
+    const search = query.search || '';
+
+    const queybuilder = this.userRepository.createQueryBuilder('user');
+    const [data, total] = await queybuilder
+      .skip(skip)
+      .take(pageSize)
+      .where(
+        'user.firstName LIKE :search OR user.lastName LIKE :search OR user.email LIKE :search',
+        { search: `%${search}%` },
+      )
+      .getManyAndCount();
+    console.log(
+      await queybuilder
+        .skip(skip)
+        .take(pageSize)
+        .where(
+          'user.firstName LIKE :search OR user.lastName LIKE :search OR user.email LIKE :search',
+          { search: `%${search}%` },
+        )
+        .getSql(),
+    );
+
+    // const [data, total] = await this.userRepository.findAndCount({
+    //   where: [
+    //     { firstName: Like('%' + search + '%') },
+    //     { lastName: Like('%' + search + '%') },
+    //     { email: Like('%' + search + '%') },
+    //   ],
+    //   // order: { created_at: "DESC" },
+    //   take: pageSize,
+    //   skip: skip,
+    //   select: ['id', 'firstName', 'lastName', 'email'],
+    // });
+    return {
+      data,
+      total,
+      totalPage: Math.ceil(total / pageSize),
+    };
   }
 
   async getAll(): Promise<User[]> {
