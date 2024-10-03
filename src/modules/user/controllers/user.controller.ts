@@ -3,17 +3,23 @@ import {
   Body,
   Controller,
   Delete,
+  FileTypeValidator,
   Get,
   HttpCode,
   HttpException,
   HttpStatus,
+  MaxFileSizeValidator,
   Param,
+  ParseFilePipe,
   ParseIntPipe,
   Patch,
   Post,
   Put,
   Query,
+  Req,
   Res,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { UsersService } from '../services/user.service';
@@ -29,6 +35,9 @@ import {
 } from '@nestjs/swagger';
 import { Role } from 'src/modules/role/enum/role.enum';
 import { Auth } from 'src/decorators/auth.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { extname } from 'path';
+import { storageConfig } from 'src/helpers/configSaveFile';
 
 @ApiTags('User')
 @Controller()
@@ -91,5 +100,51 @@ export class UsersController {
   @Auth('xóa user ', [Role.Admin], { isPublic: false })
   delete(@Param('id', ParseIntPipe) id: number): Promise<number> {
     return this.usersService.delete(id);
+  }
+
+  @Post('upload-avatar')
+  @Auth('upload avatar', [Role.User], { isPublic: false })
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: storageConfig('avatar'),
+      fileFilter: (req, file, cb) => {
+        const ext = extname(file.originalname);
+        const allowedExtArr = ['.jpg', '.png'];
+        if (!allowedExtArr.includes(ext)) {
+          req.message = 'sai định dạng file';
+          cb(null, false);
+        } else {
+          const fileSize = parseInt(req.headers['Content-Length']);
+          if (fileSize > 1024 * 1024 * 5) {
+            req.message = 'kích thước file quá lớn';
+            cb(null, false);
+          } else {
+            cb(null, true);
+          }
+        }
+      },
+    }),
+  )
+  uploadAvatar(
+    @Req() req: any,
+    @UploadedFile()
+    file // new ParseFilePipe({
+    //   validators: [
+    //     new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }),
+    //     new FileTypeValidator({ fileType: '/image/(jpg|jpeg|png)$/' }),
+    //   ],
+    // }),
+    : Express.Multer.File,
+  ) {
+    if (req.message) {
+      throw new BadRequestException(req.message);
+    }
+    if (!file) {
+      throw new BadRequestException('file is required');
+    }
+    this.usersService.updateAvatar(
+      req.user.id,
+      file.destination + '/' + file.filename,
+    );
   }
 }

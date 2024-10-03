@@ -41,6 +41,10 @@ export class UsersService {
   //   );
   // }
 
+  async updateAvatar(id: number, fileName: string) {
+    return await this.userRepository.update({ id: id }, { avatar: fileName });
+  }
+
   async getAll(): Promise<User[]> {
     return this.userRepository
       .createQueryBuilder('user')
