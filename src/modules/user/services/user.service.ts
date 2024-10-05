@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Like, Not, Repository } from 'typeorm';
 import { User } from '../entities/User.entity';
@@ -8,6 +12,7 @@ import { RolesService } from 'src/modules/role/services/role.service';
 import { paginate, PaginateQuery } from 'nestjs-paginate';
 import * as bcrypt from 'bcrypt';
 import { PaginationInterface } from '../interfaces/pagination.interface';
+import { fillterUserDto } from '../dtos/fillter-user.dto';
 @Injectable()
 export class UsersService {
   constructor(
@@ -46,9 +51,10 @@ export class UsersService {
     return await this.userRepository.update({ id: id }, { avatar: fileName });
   }
 
-  async getAllUser(query: PaginationInterface) {
+  async getAllUser(query: fillterUserDto) {
     const pageSize = Number(query.pageSize) || Number(process.env.PAGE_SIZE);
     const page = Number(query.page) || 1;
+
     const skip = (page - 1) * pageSize;
     const search = query.search || '';
 
@@ -60,17 +66,8 @@ export class UsersService {
         'user.firstName LIKE :search OR user.lastName LIKE :search OR user.email LIKE :search',
         { search: `%${search}%` },
       )
+      .select(['user.id', 'user.firstName', 'user.lastName', 'user.email'])
       .getManyAndCount();
-    console.log(
-      await queybuilder
-        .skip(skip)
-        .take(pageSize)
-        .where(
-          'user.firstName LIKE :search OR user.lastName LIKE :search OR user.email LIKE :search',
-          { search: `%${search}%` },
-        )
-        .getSql(),
-    );
 
     // const [data, total] = await this.userRepository.findAndCount({
     //   where: [
@@ -116,7 +113,7 @@ export class UsersService {
       .where('user.id = :id', { id })
       .getOne();
     if (!user) {
-      throw new BadRequestException('user không tồn tại');
+      throw new ConflictException('user không tồn tại');
     }
     return user;
   }
@@ -139,14 +136,10 @@ export class UsersService {
       .getOne();
   }
 
-  //  update pass chưa mã hóa
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
     const user = await this.getById(id);
     if (updateUserDto.roleId) {
       const role = await this.roleService.getById(updateUserDto.roleId);
-      if (!role) {
-        throw new BadRequestException('role chua ton tai');
-      }
       user.role = role;
     }
 
@@ -163,6 +156,7 @@ export class UsersService {
   async delete(id: number): Promise<number> {
     const user = await this.getById(id);
     await this.userRepository.remove(user);
+    await this.userRepository.delete(user);
     return 1;
   }
 

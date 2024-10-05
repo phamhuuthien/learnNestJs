@@ -4,6 +4,7 @@ import { IsEmail, IsNotEmpty, Length } from 'class-validator';
 export class LoginDto {
   @ApiProperty()
   @IsEmail({}, { message: 'phải là email' })
+  @IsNotEmpty({ message: 'emaik Không được để trống' })
   email: string;
 
   @ApiProperty()

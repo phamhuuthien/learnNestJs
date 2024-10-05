@@ -1,4 +1,10 @@
-import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from '../entities/Role.entity';
@@ -6,7 +12,6 @@ import { CreateRoleDto } from '../dtos/create-role.dto';
 import { UpdateRoleDto } from '../dtos/update-role.dto';
 import { PermissionsService } from 'src/modules/permission/services/permission.service';
 import { Permission } from 'src/modules/permission/entities/Permission.entity';
-
 
 @Injectable()
 export class RolesService {
@@ -23,7 +28,7 @@ export class RolesService {
       name: createRoleDto.name,
     });
     if (nameExist) {
-      throw new BadRequestException('name role da ton tai');
+      throw new ConflictException('name role da ton tai');
     }
     // role.name= createRoleDto.name;
     Object.assign(role, createRoleDto);
@@ -57,7 +62,7 @@ export class RolesService {
     const role = await this.roleRepository.findOneBy({ id });
 
     if (!role) {
-      throw new BadRequestException('Role không tồn tại');
+      throw new ConflictException('Role không tồn tại');
     }
 
     return this.roleRepository.findOne({
@@ -73,7 +78,7 @@ export class RolesService {
     const role = await this.roleRepository.findOneBy({ id });
 
     if (!role) {
-      throw new BadRequestException('Role không tồn tại');
+      throw new ConflictException('Role không tồn tại');
     }
 
     // name unique

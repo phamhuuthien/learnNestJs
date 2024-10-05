@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -9,7 +10,6 @@ import * as bcrypt from 'bcrypt';
 import { User } from 'src/modules/user/entities/User.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { LoginDto } from '../dtos/login.dto';
 import { RolesService } from 'src/modules/role/services/role.service';
 import { Response, Request } from 'express';
 
@@ -25,10 +25,7 @@ export class AuthService {
   async signUp(registerDto: RegisterDto): Promise<User> {
     // check roleId có tồn tại không
     if (registerDto.roleId) {
-      const role = await this.rolesService.getById(registerDto.roleId);
-      if (!role) {
-        throw new BadRequestException('role chua ton tai');
-      }
+      await this.rolesService.getById(registerDto.roleId);
     }
     // check email có tồn tại không
     if (registerDto.email) {
@@ -36,7 +33,7 @@ export class AuthService {
         email: registerDto.email,
       });
       if (emailExist) {
-        throw new BadRequestException('email da ton tai');
+        throw new ConflictException('email da ton tai');
       }
     }
     const hashPassword = await this.hashPassword(registerDto.password);
@@ -54,7 +51,7 @@ export class AuthService {
     //  check password
     const checkPassword = bcrypt.compareSync(loginDto.password, user.password);
     if (!checkPassword) {
-      throw new BadRequestException('password không chính xác');
+      throw new UnauthorizedException('password không chính xác');
     }
 
     let accessToken: string;
@@ -79,7 +76,7 @@ export class AuthService {
       const refreshToken = request.cookies?.refreshToken || '';
       try {
         await this.jwtService.verifyAsync(refreshToken, {
-          secret: process.env.JWT_SECRET,
+          secret: process.env.JWT_SECRET_REFRESHTOKEN,
         });
       } catch (error) {
         throw new UnauthorizedException('Xác thực thất bại');
@@ -95,6 +92,15 @@ export class AuthService {
     }
   }
 
+  async logOut(request: Request, response: Response) {
+    const refreshToken = request.cookies?.refreshToken;
+    if (!refreshToken) {
+      throw new ConflictException('token không hợp lệ');
+    }
+    response.clearCookie('refreshToken');
+    return { mesage: ' logout successfully' };
+  }
+
   private async hashPassword(password: string) {
     const saltOrRounds = +process.env.SALT;
     const salt = await bcrypt.genSalt(saltOrRounds);
@@ -105,7 +111,7 @@ export class AuthService {
     email: string;
   }): Promise<string> {
     const refreshToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET,
+      secret: process.env.JWT_SECRET_REFRESHTOKEN,
       expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN,
     });
     return refreshToken;
@@ -116,7 +122,7 @@ export class AuthService {
     email: string;
   }): Promise<string> {
     const accessToken = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_SECRET,
+      secret: process.env.JWT_SECRET_ACCESSTOKEN,
       expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN,
     });
     return accessToken;

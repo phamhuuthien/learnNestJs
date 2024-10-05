@@ -42,4 +42,13 @@ export class AuthController {
     logger.error('test log looi', 'authController');
     return this.authService.refreshToken(request);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('logOut')
+  async logOut(
+    @Req() request: any,
+    @Res({ passthrough: true }) response: any,
+  ): Promise<any> {
+    return this.authService.logOut(request, response);
+  }
 }

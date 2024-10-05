@@ -39,6 +39,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { storageConfig } from 'src/helpers/configSaveFile';
 import { PaginationInterface } from '../interfaces/pagination.interface';
+import { fillterUserDto } from '../dtos/fillter-user.dto';
 
 @ApiTags('User')
 @Controller()
@@ -51,13 +52,14 @@ export class UsersController {
     return this.usersService.getAllDeletedUser();
   }
 
-  @Get('/paginate')
+  @Get('paginate')
   @Auth('lấy danh sách user', [Role.Admin], { isPublic: false })
   async getPaginate(@Query() query: PaginateQuery) {
     return this.usersService.getPaginate(query);
   }
   @Get('danh-sach-user')
-  getAllUsers(@Query() query: PaginationInterface) {
+  @Auth('lấy danh sách user', [Role.Admin], { isPublic: false })
+  getAllUsers(@Query() query: fillterUserDto) {
     return this.usersService.getAllUser(query);
   }
 
