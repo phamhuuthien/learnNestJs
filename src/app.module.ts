@@ -11,6 +11,7 @@ import { PermissionsModule } from './modules/permission/permission.module';
 import { Permission } from './modules/permission/entities/Permission.entity';
 import { ValidationPipe } from './pipes/validation.pipe';
 import { AuthModule } from './modules/auth/auth.module';
+import { dataSourceOptions } from 'db/data-source';
 
 const routes: Routes = [
   {
@@ -36,17 +37,7 @@ const routes: Routes = [
   ],
   imports: [
     RouterModule.register(routes),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'root',
-      password: '123456',
-      database: 'test_db',
-      entities: [User, Role, Permission],
-      synchronize: true,
-      autoLoadEntities: true,
-    }),
+    TypeOrmModule.forRoot(dataSourceOptions),
     PermissionsModule,
     UsersModule,
     RolesModule,
