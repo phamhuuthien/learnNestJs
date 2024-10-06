@@ -40,6 +40,8 @@ import { extname } from 'path';
 import { storageConfig } from 'src/helpers/configSaveFile';
 import { PaginationInterface } from '../interfaces/pagination.interface';
 import { fillterUserDto } from '../dtos/fillter-user.dto';
+import { ForgotPassword } from '../dtos/forgot-password.dto';
+import { ResetPassword } from '../dtos/reset-password.dto';
 
 @ApiTags('User')
 @Controller()
@@ -57,6 +59,19 @@ export class UsersController {
   async getPaginate(@Query() query: PaginateQuery) {
     return this.usersService.getPaginate(query);
   }
+
+  @Post('forgot-password')
+  async getForgotPassword(@Body() forgotPassword: ForgotPassword) {
+    return this.usersService.forgotPassword(forgotPassword);
+  }
+  @Get('reset-password/:token')
+  async resetPassword(
+    @Param('token') token: string,
+    @Body() resetPassword: ResetPassword,
+  ) {
+    return this.usersService.resetPassword(token, resetPassword);
+  }
+
   @Get('danh-sach-user')
   @Auth('lấy danh sách user', [Role.Admin], { isPublic: false })
   getAllUsers(@Query() query: fillterUserDto) {

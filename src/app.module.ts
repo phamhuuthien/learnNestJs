@@ -12,6 +12,9 @@ import { Permission } from './modules/permission/entities/Permission.entity';
 import { ValidationPipe } from './pipes/validation.pipe';
 import { AuthModule } from './modules/auth/auth.module';
 import { dataSourceOptions } from 'db/data-source';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { config } from 'dotenv';
+import { configSendMail } from './helpers/configSendMail';
 
 const routes: Routes = [
   {
@@ -38,6 +41,7 @@ const routes: Routes = [
   imports: [
     RouterModule.register(routes),
     TypeOrmModule.forRoot(dataSourceOptions),
+    MailerModule.forRoot(configSendMail),
     PermissionsModule,
     UsersModule,
     RolesModule,

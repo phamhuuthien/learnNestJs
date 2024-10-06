@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Like, Not, Repository } from 'typeorm';
@@ -13,12 +14,18 @@ import { paginate, PaginateQuery } from 'nestjs-paginate';
 import * as bcrypt from 'bcrypt';
 import { PaginationInterface } from '../interfaces/pagination.interface';
 import { fillterUserDto } from '../dtos/fillter-user.dto';
+import { MailerService } from '@nestjs-modules/mailer';
+import { ForgotPassword } from '../dtos/forgot-password.dto';
+import { JwtService } from '@nestjs/jwt';
+import { ResetPassword } from '../dtos/reset-password.dto';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly roleService: RolesService,
+    private readonly mailService: MailerService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -47,6 +54,47 @@ export class UsersService {
   //   );
   // }
 
+  async forgotPassword(forgotPassword: ForgotPassword) {
+    const { email } = forgotPassword;
+    const checkEmail = await this.emailExist(email);
+    if (!checkEmail) {
+      throw new ConflictException('xác thực email thất bại');
+    }
+    const token = await this.generateToken({ email });
+    const message = `Forgot your password? If you didn't forget your password, please click <a href=http://localhost:3000/v1/users/reset-password/${token} >click here</a>`;
+
+    const sendMail = await this.mailService.sendMail({
+      from: 'phamhuuthien<phamhuuthienTest2608@gmail.com>',
+      // thay đổi với email người dùng nhập. Nhưng đây là test nên để email mình
+      to: 'phamhuuthien2608@gmail.com',
+      subject: `forgot password`,
+      text: message,
+    });
+
+    return { message: 'check email' };
+  }
+
+  async resetPassword(token: string, resetPassword: ResetPassword) {
+    try {
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET_TOKEN_SEND_MAIL,
+      });
+      console.log(payload.exp - new Date().getMilliseconds());
+
+      const checkEmail = await this.emailExist(payload.email);
+      if (!checkEmail) {
+        throw new ConflictException('xác thực token thật bại ');
+      }
+      const newPassword = await this.hashPassword(resetPassword.password);
+      await this.userRepository.update(
+        { email: payload.email },
+        { password: newPassword },
+      );
+      return { message: 'login với password mới' };
+    } catch (error) {
+      throw new UnauthorizedException('xác thực token thật bại');
+    }
+  }
   async updateAvatar(id: number, fileName: string) {
     return await this.userRepository.update({ id: id }, { avatar: fileName });
   }
@@ -181,5 +229,13 @@ export class UsersService {
     const saltOrRounds = +process.env.SALT;
     const salt = await bcrypt.genSalt(saltOrRounds);
     return await bcrypt.hash(password, salt);
+  }
+
+  private async generateToken(payload: { email: string }): Promise<string> {
+    const token = this.jwtService.sign(payload, {
+      secret: process.env.JWT_SECRET_TOKEN_SEND_MAIL,
+      expiresIn: process.env.SEND_MAIL_EXPIRES_IN,
+    });
+    return token;
   }
 }
